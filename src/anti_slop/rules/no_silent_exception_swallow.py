@@ -16,8 +16,12 @@ def is_empty_or_pass_body(body: list[ast.stmt]) -> bool:
         if isinstance(stmt, ast.Pass):
             return True
         if isinstance(stmt, ast.Expr) and isinstance(stmt.value, ast.Constant):
-            # Just a string/docstring or None
+            # Just a string/docstring or None/constant
             return True
+        if isinstance(stmt, ast.Assign):
+            # Dummy assignments like `_ = None` or `_ = 1`
+            if len(stmt.targets) == 1 and isinstance(stmt.targets[0], ast.Name) and stmt.targets[0].id in {"_", "dummy", "unused"}:
+                return True
     return False
 
 
@@ -39,7 +43,7 @@ class NoSilentExceptionSwallowRule(BaseRule):
                     node=node,
                     code=self.code,
                     rule_id=self.rule_id,
-                    message=f"Except block for `{exc_name}` silently swallows exceptions with pass. Log the error, handle it explicitly, or use contextlib.suppress().",
+                    message=f"Except block for `{exc_name}` silently swallows exceptions without handling or logging. Handle it explicitly, log with logger.exception(), or use contextlib.suppress().",
                 )
 
             # 2. Re-raising a new exception without 'from err' / 'from None'

@@ -5,7 +5,8 @@ import re
 import tokenize
 from dataclasses import dataclass
 
-SAFETY_COMMENT_PATTERN = re.compile(r"#\s*SAFETY\s*:\s*\S+", re.IGNORECASE)
+SAFETY_COMMENT_PATTERN = re.compile(r"#\s*SAFETY\s*:\s*(.*)", re.IGNORECASE)
+DISALLOWED_BOILERPLATE = {"cast", "safe", "ok", "todo", "fixme", "trust me", "type", "assertion", "none"}
 
 
 @dataclass(frozen=True)
@@ -44,14 +45,26 @@ def extract_comments(source_code: str) -> list[Comment]:
     return comments
 
 
+def is_valid_safety_text(justification: str) -> bool:
+    cleaned = justification.strip().lower()
+    if len(cleaned) < 10:
+        return False
+    if cleaned in DISALLOWED_BOILERPLATE:
+        return False
+    return True
+
+
 def has_safety_comment_for_node(
     comments: list[Comment],
     node_lineno: int,
     lookback_lines: int = 2,
 ) -> bool:
-    """Check if there is a '# SAFETY:' comment on the same line or immediately preceding lines."""
+    """Check if there is a substantive '# SAFETY:' comment on the same line or immediately preceding lines."""
     for c in comments:
         if (node_lineno - lookback_lines) <= c.lineno <= node_lineno:
-            if SAFETY_COMMENT_PATTERN.search(c.text):
-                return True
+            match = SAFETY_COMMENT_PATTERN.search(c.text)
+            if match:
+                justification = match.group(1)
+                if is_valid_safety_text(justification):
+                    return True
     return False

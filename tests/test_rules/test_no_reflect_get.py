@@ -14,6 +14,25 @@ name = getattr(user, "name")
     assert diags[0].rule_id == "no-reflect-get"
 
 
+def test_attrgetter_flagged():
+    code = """
+import operator
+getter = operator.attrgetter("name")
+"""
+    diags = check_code(code, NoReflectGetRule)
+    assert len(diags) == 1
+    assert diags[0].code == "SLOP007"
+
+
+def test_eval_flagged():
+    code = """
+name = eval("user.name")
+"""
+    diags = check_code(code, NoReflectGetRule)
+    assert len(diags) == 1
+    assert diags[0].code == "SLOP007"
+
+
 def test_typed_attribute_access_allowed():
     code = """
 name = user.name

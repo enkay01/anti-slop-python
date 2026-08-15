@@ -17,6 +17,18 @@ except Exception:
     assert diags[0].rule_id == "no-silent-exception-swallow"
 
 
+def test_dummy_assignment_swallow_flagged():
+    code = """
+try:
+    process()
+except Exception:
+    _ = None
+"""
+    diags = check_code(code, NoSilentExceptionSwallowRule)
+    assert len(diags) == 1
+    assert diags[0].code == "SLOP018"
+
+
 def test_unchained_raise_flagged():
     code = """
 try:

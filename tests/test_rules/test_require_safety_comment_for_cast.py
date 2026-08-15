@@ -16,7 +16,19 @@ user = cast(User, raw_value)
     assert diags[0].rule_id == "require-safety-comment-for-type-assertion"
 
 
-def test_cast_with_safety_comment_allowed():
+def test_cast_with_boilerplate_safety_comment_flagged():
+    code = """
+from typing import cast
+
+# SAFETY: cast
+user = cast(User, raw_value)
+"""
+    diags = check_code(code, RequireSafetyCommentForCastRule)
+    assert len(diags) == 1
+    assert diags[0].code == "SLOP015"
+
+
+def test_cast_with_substantive_safety_comment_allowed():
     code = """
 from typing import cast
 

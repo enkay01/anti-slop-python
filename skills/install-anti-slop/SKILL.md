@@ -92,40 +92,50 @@ When fixing anti-slop violations, agents must resolve root architectural causes 
 ### Critical Anti-Patterns to Avoid (Agent Red Flags)
 
 * **DO NOT launder runtime typechecks**: Do not create generic helper functions (e.g. `is_exact_type()`, `check_type()`, `assert_type()`, `verify_type()`) to bypass `no-runtime-typeof`. This merely hides the type check behind an extra layer of abstraction.
+* **DO NOT substitute monkeypatching for mocks**: Do not replace `unittest.mock.patch` with `monkeypatch.setattr` or module-level `setattr()`. Use real Dependency Injection with Python protocols.
+* **DO NOT substitute reflection with eval or attrgetter**: Do not replace `getattr()` with `operator.attrgetter()`, `operator.methodcaller()`, or `eval()`. Use direct attributes or pattern matching.
+* **DO NOT use boilerplate safety comments**: Do not satisfy `require-safety-comment-for-type-assertion` with low-signal comments like `# SAFETY: cast` or `# SAFETY: ok`. State the concrete invariant.
 * **DO NOT suppress rules**: Do not add `# noqa`, `# type: ignore`, or mechanically weaken rule severities to make checks pass without fixing the underlying design.
-* **DO NOT add unsafe casts**: Do not wrap raw types in unvalidated `cast()` calls just to silence errors.
 
 ---
 
-### Idiomatic Remediation by Rule
+### Idiomatic Remediation by Category
 
-#### 1. `no-runtime-typeof` (SLOP008)
-* **Problem**: Scattered `type(x) is T` or `isinstance(x, T)` checks in domain models or internal business logic indicate that untrusted data was not parsed at its entry point.
-* **Remedy**:
-  - Parse external input (JSON payloads, API responses, CLI inputs, raw DB rows) **once at the I/O boundary** into validated domain models or branded value objects using schema parsers (such as Pydantic, msgspec, or dedicated boundary decoder functions).
-  - Internal functions and dataclasses should trust their static type contracts and avoid defensive runtime checks.
-  - If a function is an intentional predicate guard, annotate its return type with `TypeGuard[T]` or `TypeIs[T]` and enable `allow_in_type_guards = true`.
+#### Category 1: Typing Integrity & Boundary Contracts
 
-#### 2. `no-excessive-parameters` (SLOP016)
-* **Problem**: Functions with >4 parameters increase cognitive load and argument swapping bugs.
-* **Remedy**: Group related parameters into a dedicated `@dataclass(frozen=True)` or Pydantic options object (e.g., `ExportOptions`, `QueryFilters`).
+* **`no-chained-type-assertions` (SLOP001) & `no-widen-then-assert` (SLOP014)**:
+  - *Remedy*: Construct target domain types directly or invoke a boundary parser/validator (`TargetType.from_raw(value)`) instead of cascading `cast()`.
+* **`no-unsafe-dictionary-type` (SLOP013) & `no-known-value-widening` (SLOP003)**:
+  - *Remedy*: Replace loose `dict[str, Any]` contracts with `TypedDict`, `@dataclass(frozen=True)`, or Pydantic models.
+* **`no-object-parameters` (SLOP005) & `no-unknown-parameters/returns/type-aliases` (SLOP010/SLOP011/SLOP012)**:
+  - *Remedy*: Replace untyped `Any`/`object` with explicit `typing.Protocol` interfaces or bounded type parameters (`[T: SupportsProcessing]`).
+* **`require-safety-comment-for-type-assertion` (SLOP015)**:
+  - *Remedy*: Document the invariant proven elsewhere: `# SAFETY: validated non-empty and parsed by request schema decoder`.
 
-#### 3. `require-keyword-only-booleans` (SLOP017)
-* **Problem**: Positional boolean arguments like `process(True, False)` obscure call-site meaning (the "boolean trap").
-* **Remedy**: Add `*,` before boolean arguments in the signature: `def process(user_id: str, *, dry_run: bool = False, notify: bool = True):`.
+#### Category 2: Dynamic Reflection & Testing Seams
 
-#### 4. `no-silent-exception-swallow` (SLOP018)
-* **Problem**: `except Exception: pass` hides bugs and unchained `raise Error` erases root cause tracebacks.
-* **Remedy**: Catch specific exception types, log failures, or chain the cause explicitly with `raise ServiceError(...) from err`. Use `contextlib.suppress(FileNotFoundError)` for genuinely benign errors.
+* **`no-module-mocking` (SLOP004)**:
+  - *Remedy*: Refactor code to accept dependencies via constructor injection. In tests, supply an in-memory test double conforming to the `Protocol`.
+* **`no-reflect-apply` (SLOP006) & `no-reflect-get` (SLOP007)**:
+  - *Remedy*: Use direct typed attribute access (`obj.field`), method polymorphism (`obj.execute()`), or structural pattern matching (`match item:`).
+* **`no-conditional-empty-object-spread` (SLOP002)**:
+  - *Remedy*: Construct dictionaries with explicit updates: `payload = dict(base); if condition: payload.update(extra)`.
+* **`no-shape-in-symbol-names` (SLOP009)**:
+  - *Remedy*: Name models after the domain entity (`User`, `UserProfile`, `UserRecord`) instead of `UserShape`.
 
-#### 5. `no-unnamed-tuple-returns` (SLOP019)
-* **Problem**: Returning heterogeneous tuples like `tuple[bool, str, int]` forces brittle positional unpacking.
-* **Remedy**: Return a named domain result: `@dataclass(frozen=True) class OperationResult: ...` or `typing.NamedTuple`.
+#### Category 3: API Signatures, Error Flow & Control Flow
 
-#### 6. `no-assert-validation` (SLOP020)
-* **Problem**: `assert` statements vanish in production when running under `python -O`.
-* **Remedy**: Replace `assert` with explicit control flow: `if invalid_condition: raise ValueError("...")`. Keep `assert` only in test files.
-
-#### 7. `no-mutable-default-arguments` (SLOP021)
-* **Problem**: `def f(items=[])` shares a single mutable list instance across all calls.
-* **Remedy**: Use `items: list[str] | None = None` and instantiate inside the function: `items = list(items) if items is not None else []`. For dataclasses/models, use `field(default_factory=list)`.
+* **`no-runtime-typeof` (SLOP008)**:
+  - *Remedy*: Parse external inputs once at the I/O boundary into validated domain models. Internal classes trust their static type contracts.
+* **`no-excessive-parameters` (SLOP016)**:
+  - *Remedy*: Group parameters into a dedicated `@dataclass(frozen=True)` options object (`ExportOptions`).
+* **`require-keyword-only-booleans` (SLOP017)**:
+  - *Remedy*: Make boolean arguments keyword-only: `def process(user_id: str, *, dry_run: bool = False):`.
+* **`no-silent-exception-swallow` (SLOP018)**:
+  - *Remedy*: Handle specific exceptions, log failures, or chain exceptions: `raise ServiceError(...) from err`.
+* **`no-unnamed-tuple-returns` (SLOP019)**:
+  - *Remedy*: Return a named `@dataclass(frozen=True)` or `NamedTuple` instead of `tuple[bool, str, int]`.
+* **`no-assert-validation` (SLOP020)**:
+  - *Remedy*: Replace `assert` with explicit `if condition: raise ValueError(...)`.
+* **`no-mutable-default-arguments` (SLOP021)**:
+  - *Remedy*: Use `items: list[str] | None = None` and instantiate inside the function, or `field(default_factory=list)`.

@@ -7,11 +7,20 @@ from anti_slop.models import Diagnostic
 from anti_slop.rules.base import BaseRule, RuleContext
 from anti_slop.shared.ast_utils import get_dotted_name
 
+REFLECT_GET_NAMES = {
+    "getattr",
+    "builtins.getattr",
+    "operator.attrgetter",
+    "attrgetter",
+    "eval",
+    "builtins.eval",
+}
+
 
 class NoReflectGetRule(BaseRule):
     rule_id = "no-reflect-get"
     code = "SLOP007"
-    description = "Disallow getattr for static attribute access or dynamic property bypass; use typed attribute access or domain parsing."
+    description = "Disallow getattr, attrgetter, and eval for attribute access; use typed attribute access or domain parsing."
 
     def run(self, context: RuleContext) -> Iterator[Diagnostic]:
         for node in ast.walk(context.tree):
@@ -24,10 +33,10 @@ class NoReflectGetRule(BaseRule):
                 continue
 
             func_name = get_dotted_name(node.func)
-            if func_name in {"getattr", "builtins.getattr"}:
+            if func_name in REFLECT_GET_NAMES:
                 yield context.make_diagnostic(
                     node=node,
                     code=self.code,
                     rule_id=self.rule_id,
-                    message="Replace `getattr` with typed attribute access. Parse dynamic input into a named domain type before reading it.",
+                    message=f"Replace `{func_name}` with typed attribute access. Parse dynamic input into a named domain type before reading it.",
                 )
