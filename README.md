@@ -9,7 +9,7 @@ This project is a Python re-implementation of [anti-slop](https://github.com/dmm
 ### Via Agent Skill
 
 ```bash
-npx skills add <repository-path> --skill install-anti-slop
+npx skills add https://github.com/enkay01/anti-slop-python --skill install-anti-slop
 ```
 
 Or run the bundled installer script:
