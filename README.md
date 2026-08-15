@@ -10,6 +10,7 @@ This project is a Python re-implementation of [anti-slop](https://github.com/dmm
 
 ```bash
 npx skills add https://github.com/enkay01/anti-slop-python --skill install-anti-slop
+```
 
 Or run the bundled installer script:
 
@@ -17,7 +18,6 @@ Or run the bundled installer script:
 python <skill-directory>/scripts/install.py
 # or from the repository root:
 python scripts/install.py
-```
 ```
 
 ### Standalone CLI / Package
