@@ -28,6 +28,46 @@ def test_call(mocker):
     assert diags[0].code == "SLOP004"
 
 
+def test_monkeypatch_setattr_flagged():
+    code = """
+def test_monkey(monkeypatch):
+    monkeypatch.setattr("myapp.services.fetch", lambda: None)
+"""
+    diags = check_code(code, NoModuleMockingRule)
+    assert len(diags) == 1
+    assert diags[0].code == "SLOP004"
+
+
+def test_framework_patch_decorator_allowed():
+    code = """
+from fastapi import FastAPI, APIRouter
+
+app = FastAPI()
+router = APIRouter()
+
+@app.patch("/users/{user_id}")
+def update_user(user_id: str):
+    pass
+
+@router.patch("/items/{item_id}")
+def update_item(item_id: str):
+    pass
+"""
+    diags = check_code(code, NoModuleMockingRule)
+    assert len(diags) == 0
+
+
+def test_http_client_patch_method_allowed():
+    code = """
+def test_api_client(client, requests, httpx):
+    client.patch("/api/v1/resource", json={"status": "ok"})
+    requests.patch("https://example.com/api", json={})
+    httpx.patch("https://example.com/api", json={})
+"""
+    diags = check_code(code, NoModuleMockingRule)
+    assert len(diags) == 0
+
+
 def test_dependency_injection_allowed():
     code = """
 class FakeUserService:
