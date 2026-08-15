@@ -1,0 +1,71 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "anti-slop"
+version = "0.1.0"
+description = "Opinionated Python lint rules that reject low-evidence and low-signal patterns."
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.9"
+dependencies = [
+    "tomli>=1.1.0; python_version < '3.11'",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "flake8>=6.0.0",
+]
+
+[project.scripts]
+anti-slop = "anti_slop.cli:main"
+
+[project.entry-points."flake8.extension"]
+SLP = "anti_slop.flake8_plugin:AntiSlopFlake8Plugin"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/anti_slop"]
+
+[tool.anti-slop]
+ignore_patterns = [
+    ".agent/**",
+    ".agents/**",
+    ".claude/**",
+    ".codex/**",
+    ".continue/**",
+    ".cursor/**",
+    ".gemini/**",
+    ".git/**",
+    ".opencode/**",
+    ".pi/**",
+    ".roo/**",
+    ".venv/**",
+    ".windsurf/**",
+    "src/anti_slop/**",
+    "tools/anti-slop/**",
+    "skills/**",
+    "tests/**",
+]
+
+[tool.anti-slop.rules]
+"no-chained-type-assertions" = "error"
+"no-conditional-empty-object-spread" = "error"
+"no-known-value-widening" = "error"
+"no-module-mocking" = "error"
+"no-object-parameters" = "error"
+"no-reflect-apply" = "error"
+"no-reflect-get" = "error"
+"no-runtime-typeof" = "error"
+"no-shape-in-symbol-names" = "error"
+"no-unknown-parameters" = "error"
+"no-unknown-returns" = "error"
+"no-unknown-type-aliases" = "error"
+"no-unsafe-dictionary-type" = "error"
+"no-widen-then-assert" = "error"
+"require-safety-comment-for-type-assertion" = "error"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = [".", "src"]
