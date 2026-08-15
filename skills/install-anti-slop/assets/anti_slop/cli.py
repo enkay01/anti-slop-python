@@ -5,10 +5,18 @@ import json
 import sys
 from pathlib import Path
 
-from anti_slop import __version__
-from anti_slop.config import load_config
-from anti_slop.engine import analyze_paths
-from anti_slop.models import Diagnostic
+# Bootstrap sys.path for direct vendored execution (e.g. python3 tools/anti-slop/cli.py)
+_current_dir = Path(__file__).resolve().parent
+_parent_dir = _current_dir.parent
+if str(_parent_dir) not in sys.path:
+    sys.path.insert(0, str(_parent_dir))
+if str(_current_dir) not in sys.path:
+    sys.path.insert(0, str(_current_dir))
+
+from anti_slop import __version__  # noqa: E402
+from anti_slop.config import load_config  # noqa: E402
+from anti_slop.engine import analyze_paths  # noqa: E402
+from anti_slop.models import Diagnostic  # noqa: E402
 
 
 def init_command(target_dir: Path) -> int:

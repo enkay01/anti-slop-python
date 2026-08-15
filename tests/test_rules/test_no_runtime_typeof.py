@@ -27,6 +27,27 @@ if type(payload) is str:
     assert diags[0].code == "SLOP008"
 
 
+def test_type_laundering_helper_function_flagged():
+    code = """
+def is_exact_type(val, expected_type):
+    return type(val) is expected_type
+"""
+    diags = check_code(code, NoRuntimeTypeofRule)
+    # Flags both the function definition and the inner type() check
+    assert len(diags) >= 1
+    assert any(d.code == "SLOP008" for d in diags)
+
+
+def test_type_laundering_call_flagged():
+    code = """
+if is_exact_type(self.id, AuctionLotId):
+    proceed()
+"""
+    diags = check_code(code, NoRuntimeTypeofRule)
+    assert len(diags) == 1
+    assert diags[0].code == "SLOP008"
+
+
 def test_allow_in_type_guards_option():
     code = """
 from typing import TypeGuard

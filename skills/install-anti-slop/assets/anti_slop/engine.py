@@ -4,12 +4,12 @@ import ast
 from pathlib import Path
 from typing import Iterator
 
-from anti_slop.config import AntiSlopConfig
-from anti_slop.models import Diagnostic
-from anti_slop.rules import ALL_RULES
-from anti_slop.rules.base import BaseRule, RuleContext
-from anti_slop.shared.ast_utils import add_parent_pointers
-from anti_slop.shared.comments import extract_comments
+from .config import AntiSlopConfig
+from .models import Diagnostic, Location
+from .rules import ALL_RULES
+from .rules.base import BaseRule, RuleContext
+from .shared.ast_utils import add_parent_pointers
+from .shared.comments import extract_comments
 
 
 def collect_type_aliases(tree: ast.AST) -> dict[str, ast.AST]:
@@ -48,7 +48,6 @@ def analyze_source(
         tree = ast.parse(source_code, filename=filename)
     except SyntaxError as e:
         # Return a diagnostic for syntax errors
-        from anti_slop.models import Location
         return [
             Diagnostic(
                 code="SYNTAX",
@@ -116,7 +115,6 @@ def analyze_paths(
         try:
             source = py_file.read_text(encoding="utf-8")
         except Exception as e:
-            from anti_slop.models import Location
             all_diagnostics.append(
                 Diagnostic(
                     code="IO",

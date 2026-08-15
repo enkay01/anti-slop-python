@@ -12,8 +12,8 @@ def main() -> int:
     parser.add_argument(
         "destination",
         nargs="?",
-        default="tools/anti-slop",
-        help="Destination directory (default: tools/anti-slop)",
+        default="tools/anti_slop",
+        help="Destination directory (default: tools/anti_slop)",
     )
     parser.add_argument(
         "--force",

@@ -3,7 +3,7 @@ from __future__ import annotations
 import ast
 from typing import Any, Generator
 
-from anti_slop.engine import analyze_source
+from .engine import analyze_source
 
 
 class AntiSlopFlake8Plugin:
