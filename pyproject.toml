@@ -70,6 +70,7 @@ ignore_patterns = [
 "no-silent-exception-swallow" = "error"
 "no-unnamed-tuple-returns" = "error"
 "no-assert-validation" = "error"
+"no-mutable-default-arguments" = "error"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -65,6 +65,7 @@ Install the bundled Python anti-slop rules into the current repository and integ
    "no-silent-exception-swallow" = "error"
    "no-unnamed-tuple-returns" = "error"
    "no-assert-validation" = "error"
+   "no-mutable-default-arguments" = "error"
    ```
 
    Keep every existing ignore. Adjust the final pattern when the plugin was copied elsewhere.

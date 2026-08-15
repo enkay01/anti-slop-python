@@ -54,6 +54,7 @@ ignore_patterns = [
 "no-silent-exception-swallow" = "error"
 "no-unnamed-tuple-returns" = "error"
 "no-assert-validation" = "error"
+"no-mutable-default-arguments" = "error"
 """
     if pyproject.exists():
         content = pyproject.read_text(encoding="utf-8")

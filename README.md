@@ -64,6 +64,7 @@ flake8 src/
 - `no-silent-exception-swallow` (SLOP018): rejects empty `except ...: pass` blocks and unchained `raise` statements.
 - `no-unnamed-tuple-returns` (SLOP019): rejects multi-value heterogeneous tuple return types (`tuple[bool, str, int]`) in favor of named models.
 - `no-assert-validation` (SLOP020): rejects `assert` used as runtime validation in business logic (which vanishes under `python -O`).
+- `no-mutable-default-arguments` (SLOP021): rejects mutable default arguments (lists, dicts, sets) that leak state across invocations.
 
 ## Configuration
 
@@ -97,6 +98,7 @@ ignore_patterns = [
 "no-silent-exception-swallow" = "error"
 "no-unnamed-tuple-returns" = "error"
 "no-assert-validation" = "error"
+"no-mutable-default-arguments" = "error"
 ```
 
 ## License
