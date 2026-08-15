@@ -16,3 +16,10 @@ Every rule in `anti_slop/rules/` must:
 2. Implement `BaseRule` and `run(context)`.
 3. Provide a helpful, clear message explaining why the pattern is low-evidence and how to fix it with domain types or boundary parsing.
 4. Have comprehensive positive and negative test cases in `tests/test_rules/`.
+
+## Bundled Skills
+
+- `skills/anti-slop`: Linter skill running opinionated AST checks.
+- `skills/install-anti-slop`: Skill for installing and configuring anti-slop in target projects.
+- `skills/python-design-patterns`: Architecture planning and evaluation skill based on ArjanCodes heuristics (the Rule of Three, composition over inheritance, Protocols).
+

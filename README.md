@@ -4,9 +4,19 @@ Opinionated Python lint rules that reject low-evidence and low-signal typing and
 
 This project is a Python re-implementation of [anti-slop](https://github.com/dmmulroy/anti-slop). It is meant to be vendored or used as a CLI/linter tool, not treated as an opaque dependency. Copy the rules into your repository, read them, and adapt them to match your team's standards.
 
-## Installation
+## Bundled Agent Skills
 
-### Via Agent Skill
+This repository bundles 3 specialized agent skills:
+
+### 1. `anti-slop`
+Run zero-commit, opinionated Python anti-slop code quality checks on a repository directly without modifying or polluting the target working tree.
+
+```bash
+npx skills add https://github.com/enkay01/anti-slop-python --skill anti-slop
+```
+
+### 2. `install-anti-slop`
+Check or install opinionated Python anti-slop rules into a target project, with `pyproject.toml` configuration and optional vendoring.
 
 ```bash
 npx skills add https://github.com/enkay01/anti-slop-python --skill install-anti-slop
@@ -15,9 +25,14 @@ npx skills add https://github.com/enkay01/anti-slop-python --skill install-anti-
 Or run the bundled installer script:
 
 ```bash
-python <skill-directory>/scripts/install.py
-# or from the repository root:
 python scripts/install.py
+```
+
+### 3. `python-design-patterns`
+Evaluate or plan Python architecture and design patterns following ArjanCodes guidelines (Strategy, Observer, State, Command, Template Method, Adapter, Decorator, Composite, Facade, Bridge, Factory, Builder, Singleton, Dependency Injection, Repository, Parameter Object, Rule Engine, Rule of Three).
+
+```bash
+npx skills add https://github.com/enkay01/anti-slop-python --skill python-design-patterns
 ```
 
 ### Standalone CLI / Package
