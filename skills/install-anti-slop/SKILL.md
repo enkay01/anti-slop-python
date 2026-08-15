@@ -1,13 +1,42 @@
 ---
 name: install-anti-slop
-description: Install and configure the anti-slop Python lint rules in a local Python repository. Use whenever a user asks to add anti-slop lint rules, copy the anti-slop plugin, configure opinionated Python lint rules, or migrate an existing local anti-slop setup.
+description: Check or install opinionated Python anti-slop lint rules. Supports zero-commit audits via bundled scripts or full repository installation with pyproject.toml configuration.
 ---
 
-# Install anti-slop
+# Anti-Slop (Python)
 
-Install the bundled Python anti-slop rules into the current repository and integrate them with the repository's existing lint setup. Preserve unrelated work and adapt to the project's package manager and configuration style.
+Opinionated Python lint rules rejecting low-evidence and low-signal patterns.
 
-## Procedure
+This skill provides two distinct modes:
+1. **Mode 1: Zero-Commit Check (Advisory & Audits)** - Run checks directly against any Python project without modifying its files or committing configuration.
+2. **Mode 2: Full Repository Installation (Vendoring & CI)** - Vendor the rules into `tools/anti_slop/` and configure `pyproject.toml` for team enforcement and CI/CD pipelines.
+
+---
+
+## Mode 1: Zero-Commit Check (Advisory & Audits)
+
+Use this mode when reviewing code, checking PRs, or auditing repositories without leaving any untracked files or committing configuration.
+
+### Usage
+
+```bash
+# Check the entire repository or a specific path
+python <skill-directory>/scripts/check.py [path]
+
+# Example: check src directory with JSON output
+python <skill-directory>/scripts/check.py src/ --format json
+```
+
+* **Zero Footprint**: Does not modify `pyproject.toml` or create any files in the target repository.
+* **Auto-Discovery**: Automatically respects the target project's `pyproject.toml` rules and ignore patterns if present; otherwise applies default strict rules.
+
+---
+
+## Mode 2: Full Repository Installation (Vendoring & CI)
+
+Use this mode when the user requests permanent lint enforcement, pre-commit hooks, or CI integration.
+
+### Procedure
 
 1. Inspect the repository before changing it:
    - Read its agent instructions and `pyproject.toml`.
@@ -18,7 +47,7 @@ Install the bundled Python anti-slop rules into the current repository and integ
 2. Copy the bundled plugin from this skill. Run from the target repository:
 
    ```bash
-   python <skill-directory>/scripts/install.py
+   python <skill-directory>/scripts/install.py [tools/anti_slop]
    ```
 
    This creates `tools/anti_slop/`. Pass another relative destination as the first argument when the repository has an established tooling layout. The script refuses to replace an existing destination; only use `--force` after backing up and reviewing existing files.

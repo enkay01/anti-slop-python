@@ -157,11 +157,17 @@ def main(argv: list[str] | None = None) -> int:
     config_path = getattr(args, "config", None)
 
     if config_path and config_path.exists():
-        config = load_config(config_path.parent)
+        target_base = config_path.parent
+        config = load_config(target_base)
+    elif paths:
+        first_path = paths[0]
+        target_base = first_path if first_path.is_dir() else first_path.parent
+        config = load_config(target_base)
     else:
-        config = load_config()
+        target_base = Path.cwd()
+        config = load_config(target_base)
 
-    diagnostics = analyze_paths(paths, config, base_dir=Path.cwd())
+    diagnostics = analyze_paths(paths, config, base_dir=target_base)
 
     if output_format == "json":
         print(format_json(diagnostics))
