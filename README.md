@@ -44,7 +44,7 @@ python -m anti_slop check
 flake8 src/
 ```
 
-## Rules (SLOP001 – SLOP021)
+## Rules (SLOP001 – SLOP022)
 
 - `no-chained-type-assertions` (SLOP001): rejects nested `cast()` calls that fabricate evidence.
 - `no-conditional-empty-object-spread` (SLOP002): rejects conditional dictionary spreads that use `{}` to omit keys.
@@ -67,6 +67,7 @@ flake8 src/
 - `no-unnamed-tuple-returns` (SLOP019): rejects multi-value heterogeneous tuple return types (`tuple[bool, str, int]`) in favor of named models.
 - `no-assert-validation` (SLOP020): rejects `assert` used as runtime validation in business logic (which vanishes under `python -O`).
 - `no-mutable-default-arguments` (SLOP021): rejects mutable default arguments (lists, dicts, sets) that leak state across invocations.
+- `no-excessive-optional-fields` (SLOP022): rejects anemic partial models with excessive nullable fields (>50% `| None`) and massive null-check chains.
 
 ## Remediation Guidance for Coding Agents
 
@@ -112,6 +113,7 @@ ignore_patterns = [
 "no-unnamed-tuple-returns" = "error"
 "no-assert-validation" = "error"
 "no-mutable-default-arguments" = "error"
+"no-excessive-optional-fields" = "error"
 ```
 
 ## License

@@ -63,6 +63,7 @@ ignore_patterns = [
 "no-unnamed-tuple-returns" = "error"
 "no-assert-validation" = "error"
 "no-mutable-default-arguments" = "error"
+"no-excessive-optional-fields" = "error"
 """
     if pyproject.exists():
         content = pyproject.read_text(encoding="utf-8")

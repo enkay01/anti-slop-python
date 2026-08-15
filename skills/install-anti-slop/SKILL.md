@@ -7,7 +7,7 @@ description: Check or configure opinionated Python anti-slop lint rules on a rep
 
 Opinionated Python lint rules rejecting low-evidence and low-signal patterns.
 
-This skill is a self-contained agent capability. The anti-slop engine and all 21 rule implementations live inside this skill and execute directly against any target Python project.
+This skill is a self-contained agent capability. The anti-slop engine and all 22 rule implementations live inside this skill and execute directly against any target Python project.
 
 > [!IMPORTANT]
 > **Zero Working-Tree Pollution Rule**:
@@ -68,6 +68,7 @@ ignore_patterns = [
 "no-unnamed-tuple-returns" = "error"
 "no-assert-validation" = "error"
 "no-mutable-default-arguments" = "error"
+"no-excessive-optional-fields" = "error"
 ```
 
 ---
@@ -136,3 +137,5 @@ When fixing anti-slop violations, agents must resolve root architectural causes 
   - *Remedy*: Replace `assert` with explicit `if condition: raise ValueError(...)`.
 * **`no-mutable-default-arguments` (SLOP021)**:
   - *Remedy*: Use `items: list[str] | None = None` and instantiate inside the function, or `field(default_factory=list)`.
+* **`no-excessive-optional-fields` (SLOP022)**:
+  - *Remedy*: Avoid anemic partial models where most fields are `| None`. Parse raw boundary data directly into complete domain models at the I/O boundary.

@@ -6,6 +6,7 @@ from anti_slop.rules.base import BaseRule
 from anti_slop.rules.no_assert_validation import NoAssertValidationRule
 from anti_slop.rules.no_chained_type_assertions import NoChainedTypeAssertionsRule
 from anti_slop.rules.no_conditional_empty_dict_spread import NoConditionalEmptyDictSpreadRule
+from anti_slop.rules.no_excessive_optional_fields import NoExcessiveOptionalFieldsRule
 from anti_slop.rules.no_excessive_parameters import NoExcessiveParametersRule
 from anti_slop.rules.no_known_value_widening import NoKnownValueWideningRule
 from anti_slop.rules.no_module_mocking import NoModuleMockingRule
@@ -47,6 +48,7 @@ ALL_RULES: list[Type[BaseRule]] = [
     NoUnnamedTupleReturnsRule,
     NoAssertValidationRule,
     NoMutableDefaultArgumentsRule,
+    NoExcessiveOptionalFieldsRule,
 ]
 
 RULE_REGISTRY: dict[str, Type[BaseRule]] = {}
@@ -61,6 +63,7 @@ __all__ = [
     "NoAssertValidationRule",
     "NoChainedTypeAssertionsRule",
     "NoConditionalEmptyDictSpreadRule",
+    "NoExcessiveOptionalFieldsRule",
     "NoExcessiveParametersRule",
     "NoKnownValueWideningRule",
     "NoModuleMockingRule",
