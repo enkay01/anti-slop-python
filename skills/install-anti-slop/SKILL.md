@@ -60,6 +60,11 @@ Install the bundled Python anti-slop rules into the current repository and integ
    "no-unsafe-dictionary-type" = "error"
    "no-widen-then-assert" = "error"
    "require-safety-comment-for-type-assertion" = "error"
+   "no-excessive-parameters" = "error"
+   "require-keyword-only-booleans" = "error"
+   "no-silent-exception-swallow" = "error"
+   "no-unnamed-tuple-returns" = "error"
+   "no-assert-validation" = "error"
    ```
 
    Keep every existing ignore. Adjust the final pattern when the plugin was copied elsewhere.

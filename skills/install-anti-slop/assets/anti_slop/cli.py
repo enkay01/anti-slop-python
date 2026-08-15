@@ -49,6 +49,11 @@ ignore_patterns = [
 "no-unsafe-dictionary-type" = "error"
 "no-widen-then-assert" = "error"
 "require-safety-comment-for-type-assertion" = "error"
+"no-excessive-parameters" = "error"
+"require-keyword-only-booleans" = "error"
+"no-silent-exception-swallow" = "error"
+"no-unnamed-tuple-returns" = "error"
+"no-assert-validation" = "error"
 """
     if pyproject.exists():
         content = pyproject.read_text(encoding="utf-8")

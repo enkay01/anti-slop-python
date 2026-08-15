@@ -59,6 +59,11 @@ flake8 src/
 - `no-unsafe-dictionary-type` (SLOP013): rejects dictionary value contracts based on `Any`, `object`, `dict`, and semantic equivalents.
 - `no-widen-then-assert` (SLOP014): rejects local flows that widen known values and later assert them back.
 - `require-safety-comment-for-type-assertion` (SLOP015): requires each `cast()` to document its checked invariant with `# SAFETY: <reason>`.
+- `no-excessive-parameters` (SLOP016): rejects function signatures with excessive parameters (>4) in favor of dataclass/Pydantic options models.
+- `require-keyword-only-booleans` (SLOP017): rejects positional boolean arguments in favor of keyword-only flags (`*, flag=True`).
+- `no-silent-exception-swallow` (SLOP018): rejects empty `except ...: pass` blocks and unchained `raise` statements.
+- `no-unnamed-tuple-returns` (SLOP019): rejects multi-value heterogeneous tuple return types (`tuple[bool, str, int]`) in favor of named models.
+- `no-assert-validation` (SLOP020): rejects `assert` used as runtime validation in business logic (which vanishes under `python -O`).
 
 ## Configuration
 
@@ -87,6 +92,11 @@ ignore_patterns = [
 "no-unsafe-dictionary-type" = "error"
 "no-widen-then-assert" = "error"
 "require-safety-comment-for-type-assertion" = "error"
+"no-excessive-parameters" = "error"
+"require-keyword-only-booleans" = "error"
+"no-silent-exception-swallow" = "error"
+"no-unnamed-tuple-returns" = "error"
+"no-assert-validation" = "error"
 ```
 
 ## License
