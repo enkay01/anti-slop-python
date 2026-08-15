@@ -1,6 +1,6 @@
 ---
-name: install-anti-slop
-description: Check or configure opinionated Python anti-slop lint rules on a repository directly from this skill. Runs checks without modifying or polluting the target repository.
+name: anti-slop
+description: Run opinionated Python anti-slop code quality checks on a repository directly from this skill. Use to audit code quality, check PRs, or enforce clean typing and architecture standards without modifying or polluting the target repository.
 ---
 
 # Anti-Slop (Python)
