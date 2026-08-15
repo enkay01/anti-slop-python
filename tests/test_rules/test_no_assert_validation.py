@@ -24,11 +24,23 @@ def test_something():
     assert len(diags) == 0
 
 
-def test_assert_with_safety_comment_allowed():
+def test_assert_in_service_flagged_despite_comment():
     code = """
-def process(node):
+def process(node: object) -> None:
     # SAFETY: Node is proven non-null by caller invariant
     assert node is not None
+"""
+    diags = analyze_source(code, filename="service.py", rules=[NoAssertValidationRule])
+    assert len(diags) == 1
+    assert diags[0].code == "SLOP020"
+
+
+def test_assert_in_type_checking_allowed():
+    code = """
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    assert isinstance(node, ValidNode)
 """
     diags = analyze_source(code, filename="service.py", rules=[NoAssertValidationRule])
     assert len(diags) == 0

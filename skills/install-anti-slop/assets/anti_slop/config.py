@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import fnmatch
 import os
 import sys
@@ -45,6 +46,12 @@ DEFAULT_IGNORE_PATTERNS = [
     "venv/**",
 ]
 
+DEFAULT_DISABLED_RULES = {
+    "no-shape-in-symbol-names",
+    "anti-slop/no-shape-in-symbol-names",
+    "SLOP009",
+}
+
 
 @dataclass
 class AntiSlopConfig:
@@ -80,6 +87,8 @@ class AntiSlopConfig:
         """Check if a rule is enabled."""
         val = self.rules.get(rule_id) or self.rules.get(f"anti-slop/{rule_id}") or self.rules.get(code)
         if val is None:
+            if rule_id in DEFAULT_DISABLED_RULES or code in DEFAULT_DISABLED_RULES:
+                return False
             # Enabled by default unless explicitly turned off
             return True
         if isinstance(val, str):
@@ -123,7 +132,7 @@ def load_config(root_dir: Path | None = None) -> AntiSlopConfig:
     while current != current.parent:
         pyproject = current / "pyproject.toml"
         if pyproject.exists():
-            try:
+            with contextlib.suppress(Exception):
                 if tomllib is not None:
                     with open(pyproject, "rb") as f:
                         data = tomllib.load(f)
@@ -139,7 +148,5 @@ def load_config(root_dir: Path | None = None) -> AntiSlopConfig:
                     fallback_rules = parse_fallback_toml(text)
                     if fallback_rules:
                         return AntiSlopConfig(rules=fallback_rules)
-            except Exception:
-                pass
         current = current.parent
     return AntiSlopConfig()

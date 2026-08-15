@@ -116,3 +116,67 @@ def is_typeguard_function(func: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
         or ret_name.startswith("typing.TypeIs[")
         or ret_name.startswith("typing_extensions.TypeIs[")
     )
+
+
+def is_test_file(filename: str) -> bool:
+    """Check if a filename is part of a test suite."""
+    clean = filename.replace("\\", "/")
+    if (
+        "test_" in clean
+        or "_test.py" in clean
+        or "/tests/" in clean
+        or clean.startswith("tests/")
+        or "conftest.py" in clean
+    ):
+        return True
+    return False
+
+
+def is_public_function(
+    node: ast.FunctionDef | ast.AsyncFunctionDef,
+    filename: str,
+) -> bool:
+    """Determine if a function or method is public and subject to signature typing contracts."""
+    if is_test_file(filename):
+        return False
+    # Private functions and methods start with '_'
+    if node.name.startswith("_"):
+        return False
+    # Exclude @overload functions
+    for dec in node.decorator_list:
+        dec_name = get_dotted_name(dec)
+        if dec_name in {"overload", "typing.overload"}:
+            return False
+    return True
+
+
+def is_exact_type_check_expr(node: ast.AST) -> bool:
+    """Check if an expression is an exact type identity comparison (type(x) is / __class__ is)."""
+    if isinstance(node, ast.Compare):
+        # 1. Left is type(x) call
+        if isinstance(node.left, ast.Call):
+            name = get_dotted_name(node.left.func)
+            if name in {"type", "builtins.type"}:
+                return True
+        # 2. Left is x.__class__ attribute
+        if isinstance(node.left, ast.Attribute) and node.left.attr == "__class__":
+            return True
+        # 3. Any comparator is type(x) or x.__class__
+        for comp in node.comparators:
+            if isinstance(comp, ast.Call) and get_dotted_name(comp.func) in {"type", "builtins.type"}:
+                return True
+            if isinstance(comp, ast.Attribute) and comp.attr == "__class__":
+                return True
+    return False
+
+
+def is_single_statement_exact_type_helper(
+    node: ast.FunctionDef | ast.AsyncFunctionDef,
+) -> bool:
+    """Check if a function body structurally consists only of returning an exact type check."""
+    body = node.body
+    if body and isinstance(body[0], ast.Expr) and isinstance(body[0].value, ast.Constant) and isinstance(body[0].value.value, str):
+        body = body[1:]
+    if len(body) == 1 and isinstance(body[0], ast.Return) and body[0].value is not None:
+        return is_exact_type_check_expr(body[0].value)
+    return False

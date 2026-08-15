@@ -1,11 +1,8 @@
 from __future__ import annotations
 
 import io
-import re
 import tokenize
 from dataclasses import dataclass
-
-SAFETY_COMMENT_PATTERN = re.compile(r"#\s*SAFETY\s*:\s*\S+", re.IGNORECASE)
 
 
 @dataclass(frozen=True)
@@ -13,6 +10,21 @@ class Comment:
     text: str
     lineno: int
     col_offset: int
+
+
+def _fallback_scan_comments(source_code: str) -> list[Comment]:
+    comments: list[Comment] = []
+    for i, line in enumerate(source_code.splitlines(), start=1):
+        stripped = line.strip()
+        if stripped.startswith("#"):
+            comments.append(
+                Comment(
+                    text=stripped,
+                    lineno=i,
+                    col_offset=line.find("#"),
+                )
+            )
+    return comments
 
 
 def extract_comments(source_code: str) -> list[Comment]:
@@ -29,29 +41,6 @@ def extract_comments(source_code: str) -> list[Comment]:
                         col_offset=tok.start[1],
                     )
                 )
-    except Exception:
-        # Fallback line-by-line scanning if tokenize encounters an encoding error
-        for i, line in enumerate(source_code.splitlines(), start=1):
-            stripped = line.strip()
-            if stripped.startswith("#"):
-                comments.append(
-                    Comment(
-                        text=stripped,
-                        lineno=i,
-                        col_offset=line.find("#"),
-                    )
-                )
-    return comments
-
-
-def has_safety_comment_for_node(
-    comments: list[Comment],
-    node_lineno: int,
-    lookback_lines: int = 2,
-) -> bool:
-    """Check if there is a '# SAFETY:' comment on the same line or immediately preceding lines."""
-    for c in comments:
-        if (node_lineno - lookback_lines) <= c.lineno <= node_lineno:
-            if SAFETY_COMMENT_PATTERN.search(c.text):
-                return True
-    return False
+        return comments
+    except (tokenize.TokenError, UnicodeDecodeError, Exception):
+        return _fallback_scan_comments(source_code)

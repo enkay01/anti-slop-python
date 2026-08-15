@@ -5,8 +5,8 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Any, Iterator
 
-from anti_slop.models import Diagnostic, Location, Severity
-from anti_slop.shared.comments import Comment
+from ..models import Diagnostic, Location, Severity
+from ..shared.comments import Comment
 
 
 @dataclass
@@ -30,6 +30,7 @@ class RuleContext:
         code: str,
         rule_id: str,
         message: str,
+        *,
         severity: Severity = Severity.ERROR,
     ) -> Diagnostic:
         lineno = getattr(node, "lineno", 1)

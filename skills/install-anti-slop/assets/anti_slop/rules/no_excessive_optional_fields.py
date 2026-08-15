@@ -7,22 +7,6 @@ from anti_slop.models import Diagnostic
 from anti_slop.rules.base import BaseRule, RuleContext
 from anti_slop.shared.ast_utils import get_annotation_name
 
-SPARSE_CLASS_NAME_SUFFIXES = {
-    "patch",
-    "update",
-    "filter",
-    "filters",
-    "query",
-    "options",
-    "partial",
-    "delta",
-}
-
-
-def is_sparse_class_name(name: str) -> bool:
-    lower = name.lower()
-    return any(lower.endswith(suffix) or f"{suffix}_" in lower for suffix in SPARSE_CLASS_NAME_SUFFIXES)
-
 
 def is_optional_annotation(annotation: ast.AST | None) -> bool:
     if annotation is None:
@@ -52,6 +36,17 @@ def is_optional_annotation(annotation: ast.AST | None) -> bool:
     return False
 
 
+def is_partial_typeddict(node: ast.ClassDef) -> bool:
+    """Check if class explicitly declares a partial TypedDict (TypedDict, total=False)."""
+    for base in node.bases:
+        base_name = get_annotation_name(base)
+        if base_name in {"TypedDict", "typing.TypedDict", "typing_extensions.TypedDict"}:
+            for kw in node.keywords:
+                if kw.arg == "total" and isinstance(kw.value, ast.Constant) and kw.value.value is False:
+                    return True
+    return False
+
+
 def count_null_check_clauses(node: ast.AST) -> int:
     """Count 'x is None' or 'x is not None' comparisons in a BoolOp expression."""
     count = 0
@@ -70,7 +65,7 @@ class NoExcessiveOptionalFieldsRule(BaseRule):
     rule_id = "no-excessive-optional-fields"
     code = "SLOP022"
     description = (
-        "Disallow classes with excessive optional fields (>50% and >=3 fields) and massive null-check chains; "
+        "Disallow classes with excessive optional fields (>=4 total fields and >=50% optional) and massive null-check chains; "
         "parse raw inputs directly into complete domain entities at the boundary."
     )
 
@@ -78,7 +73,7 @@ class NoExcessiveOptionalFieldsRule(BaseRule):
         for node in ast.walk(context.tree):
             # 1. Check Class Definitions (dataclasses, models, records)
             if isinstance(node, ast.ClassDef):
-                if is_sparse_class_name(node.name):
+                if is_partial_typeddict(node):
                     continue
 
                 total_fields = 0
@@ -93,7 +88,7 @@ class NoExcessiveOptionalFieldsRule(BaseRule):
                         if is_optional_annotation(item.annotation):
                             optional_fields += 1
 
-                if total_fields >= 3 and optional_fields >= 3:
+                if total_fields >= 4:
                     ratio = optional_fields / total_fields
                     if ratio >= 0.5:
                         pct = int(ratio * 100)
@@ -104,7 +99,7 @@ class NoExcessiveOptionalFieldsRule(BaseRule):
                             message=(
                                 f"Class `{node.name}` has {optional_fields}/{total_fields} optional fields ({pct}%). "
                                 "Avoid anemic partial models where most fields are nullable. "
-                                "Parse raw boundary data directly into complete domain entities."
+                                "Parse raw boundary data directly into complete domain entities or use TypedDict(total=False)."
                             ),
                         )
 

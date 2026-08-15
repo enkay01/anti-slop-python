@@ -5,10 +5,18 @@ import json
 import sys
 from pathlib import Path
 
-from anti_slop import __version__
-from anti_slop.config import load_config
-from anti_slop.engine import analyze_paths
-from anti_slop.models import Diagnostic
+# Bootstrap sys.path for direct vendored execution (e.g. python3 tools/anti-slop/cli.py)
+_current_dir = Path(__file__).resolve().parent
+_parent_dir = _current_dir.parent
+if str(_parent_dir) not in sys.path:
+    sys.path.insert(0, str(_parent_dir))
+if str(_current_dir) not in sys.path:
+    sys.path.insert(0, str(_current_dir))
+
+from anti_slop import __version__  # noqa: E402
+from anti_slop.config import load_config  # noqa: E402
+from anti_slop.engine import analyze_paths  # noqa: E402
+from anti_slop.models import Diagnostic  # noqa: E402
 
 
 def init_command(target_dir: Path) -> int:
@@ -55,6 +63,7 @@ ignore_patterns = [
 "no-unnamed-tuple-returns" = "error"
 "no-assert-validation" = "error"
 "no-mutable-default-arguments" = "error"
+"no-excessive-optional-fields" = "error"
 """
     if pyproject.exists():
         content = pyproject.read_text(encoding="utf-8")
@@ -149,11 +158,17 @@ def main(argv: list[str] | None = None) -> int:
     config_path = getattr(args, "config", None)
 
     if config_path and config_path.exists():
-        config = load_config(config_path.parent)
+        target_base = config_path.parent
+        config = load_config(target_base)
+    elif paths:
+        first_path = paths[0]
+        target_base = first_path if first_path.is_dir() else first_path.parent
+        config = load_config(target_base)
     else:
-        config = load_config()
+        target_base = Path.cwd()
+        config = load_config(target_base)
 
-    diagnostics = analyze_paths(paths, config, base_dir=Path.cwd())
+    diagnostics = analyze_paths(paths, config, base_dir=target_base)
 
     if output_format == "json":
         print(format_json(diagnostics))

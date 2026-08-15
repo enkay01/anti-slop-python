@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any
+from typing import TypedDict
 
 
 class Severity(str, Enum):
@@ -15,8 +15,20 @@ class Severity(str, Enum):
 class Location:
     lineno: int
     col_offset: int
-    end_lineno: int | None = None
-    end_col_offset: int | None = None
+    end_lineno: int = 0
+    end_col_offset: int = 0
+
+
+class DiagnosticDict(TypedDict):
+    code: str
+    rule_id: str
+    message: str
+    filename: str
+    lineno: int
+    col_offset: int
+    end_lineno: int
+    end_col_offset: int
+    severity: str
 
 
 @dataclass(frozen=True)
@@ -37,7 +49,7 @@ class Diagnostic:
             return f"{header}\n    {self.context_line}\n    {pointer}"
         return header
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> DiagnosticDict:
         return {
             "code": self.code,
             "rule_id": self.rule_id,

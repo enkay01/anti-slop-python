@@ -5,42 +5,40 @@ from typing import Iterator
 
 from anti_slop.models import Diagnostic
 from anti_slop.rules.base import BaseRule, RuleContext
-from anti_slop.shared.ast_utils import enclosing_function, get_dotted_name, is_typeguard_function
+from anti_slop.shared.ast_utils import (
+    is_exact_type_check_expr,
+    is_single_statement_exact_type_helper,
+)
 
 
 class NoRuntimeTypeofRule(BaseRule):
     rule_id = "no-runtime-typeof"
     code = "SLOP008"
-    description = "Disallow ad-hoc runtime type checks (type(x) is / isinstance); decode external values at their boundary."
+    description = "Disallow exact runtime type equality (type(x) is / __class__ is) and structural type-laundering helpers; use polymorphic dispatch or boundary validation."
 
     def run(self, context: RuleContext) -> Iterator[Diagnostic]:
-        allow_in_type_guards = context.options.get("allow_in_type_guards", False)
-
         for node in ast.walk(context.tree):
-            is_type_check = False
+            # 1. Structural helper function returning exact type comparison: def matches_kind(x): return type(x) is Foo
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                if is_single_statement_exact_type_helper(node):
+                    yield context.make_diagnostic(
+                        node=node,
+                        code=self.code,
+                        rule_id=self.rule_id,
+                        message=(
+                            f"Function `{node.name}` is a structural type-laundering wrapper around an exact type comparison. "
+                            "Use structural pattern matching, domain parsing, or polymorphic protocols instead."
+                        ),
+                    )
 
-            # 1. `type(x) is str` or `type(x) == int`
-            if isinstance(node, ast.Compare):
-                if isinstance(node.left, ast.Call):
-                    name = get_dotted_name(node.left.func)
-                    if name in {"type", "builtins.type"}:
-                        is_type_check = True
-
-            # 2. `isinstance(x, ...)` or `issubclass(...)`
-            elif isinstance(node, ast.Call):
-                name = get_dotted_name(node.func)
-                if name in {"isinstance", "builtins.isinstance", "issubclass", "builtins.issubclass"}:
-                    is_type_check = True
-
-            if is_type_check:
-                if allow_in_type_guards:
-                    func = enclosing_function(node)
-                    if func is not None and is_typeguard_function(func):
-                        continue
-
+            # 2. Exact type comparisons: type(x) is Foo, type(x) == Foo, x.__class__ is Foo
+            elif is_exact_type_check_expr(node):
                 yield context.make_diagnostic(
                     node=node,
                     code=self.code,
                     rule_id=self.rule_id,
-                    message="A runtime type check narrows a representation without establishing its contract. Parse input at its I/O boundary, then branch on the domain value.",
+                    message=(
+                        "Exact type identity check (`type(x) is` or `x.__class__ is`) breaks subtyping and polymorphism. "
+                        "Use `isinstance()`, structural pattern matching (`match/case`), or parse at the I/O boundary."
+                    ),
                 )

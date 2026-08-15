@@ -7,7 +7,7 @@ description: Run opinionated Python anti-slop code quality checks on a repositor
 
 Opinionated Python lint rules rejecting low-evidence and low-signal patterns.
 
-This skill is a self-contained agent capability. The anti-slop engine and all 21 rule implementations live inside this skill and execute directly against any target Python project.
+This skill is a self-contained agent capability. The anti-slop engine and rule implementations live inside this skill and execute directly against any target Python project.
 
 > [!IMPORTANT]
 > **Zero Working-Tree Pollution Rule**:
@@ -37,7 +37,7 @@ python <skill-directory>/scripts/check.py <target-path> --format json
 
 ## 2. Optional: Custom Configuration in `pyproject.toml`
 
-If a project wants to customize rule severities or add custom ignore patterns, add a `[tool.anti-slop]` section to the target repository's `pyproject.toml` (this is purely declarative config; no code files need to be copied):
+If a project wants to customize rule severities, configure boundary modules, or add custom ignore patterns, add a `[tool.anti-slop]` section to `pyproject.toml`:
 
 ```toml
 [tool.anti-slop]
@@ -55,13 +55,12 @@ ignore_patterns = [
 "no-reflect-apply" = "error"
 "no-reflect-get" = "error"
 "no-runtime-typeof" = "error"
-"no-shape-in-symbol-names" = "error"
 "no-unknown-parameters" = "error"
 "no-unknown-returns" = "error"
 "no-unknown-type-aliases" = "error"
 "no-unsafe-dictionary-type" = "error"
 "no-widen-then-assert" = "error"
-"require-safety-comment-for-type-assertion" = "error"
+"require-safety-comment-for-type-assertion" = { severity = "error", options = { boundary_modules = ["src/adapters/**"] } }
 "no-excessive-parameters" = "error"
 "require-keyword-only-booleans" = "error"
 "no-silent-exception-swallow" = "error"
@@ -73,27 +72,18 @@ ignore_patterns = [
 
 ---
 
-## 3. Optional: Vendoring (Only When Explicitly Requested)
-
-If and only if the user explicitly asks to vendor the linter into their repository for offline CI builds without installing packages:
-
-```bash
-python <skill-directory>/scripts/install.py tools/anti_slop
-```
-
----
-
 ## Remediation Guidance for Coding Agents
 
-When fixing anti-slop violations, agents must resolve root architectural causes rather than disguising or laundering code patterns.
+When fixing anti-slop violations, agents must resolve root architectural causes rather than applying superficial syntactic dodges.
 
 ### Critical Anti-Patterns to Avoid (Agent Red Flags)
 
-* **DO NOT launder runtime typechecks**: Do not create generic helper functions (e.g. `is_exact_type()`, `check_type()`, `assert_type()`, `verify_type()`) to bypass `no-runtime-typeof`. This merely hides the type check behind an extra layer of abstraction.
-* **DO NOT substitute monkeypatching for mocks**: Do not replace `unittest.mock.patch` with `monkeypatch.setattr` or module-level `setattr()`. Use real Dependency Injection with Python protocols.
-* **DO NOT substitute reflection with eval or attrgetter**: Do not replace `getattr()` with `operator.attrgetter()`, `operator.methodcaller()`, or `eval()`. Use direct attributes or pattern matching.
-* **DO NOT use boilerplate safety comments**: Do not satisfy `require-safety-comment-for-type-assertion` with low-signal comments like `# SAFETY: cast` or `# SAFETY: ok`. State the concrete invariant.
-* **DO NOT suppress rules**: Do not add `# noqa`, `# type: ignore`, or mechanically weaken rule severities to make checks pass without fixing the underlying design.
+* **DO NOT delete annotations to bypass Any checks**: Missing annotations on public functions are flagged (SLOP010/SLOP011). Provide concrete domain contracts.
+* **DO NOT substitute monkeypatching or direct mock assignment for seams**: In tests, do not assign `mod.fn = MagicMock()` or use `monkeypatch.setattr`. Use constructor-injected test doubles conforming to a `typing.Protocol`.
+* **DO NOT substitute reflection with `__dict__` or `vars()`**: Accessing `obj.__dict__[k]` or `vars(obj)[k]` is flagged (SLOP007). Use typed attribute access or literal `getattr(obj, "field", default)`.
+* **DO NOT use dummy assignment to swallow exceptions**: Writing `ignored = True` or `logger.debug("skip")` without exc_info is flagged (SLOP018). Use `contextlib.suppress(SpecificException)` for intentional ignores, or chain exceptions with `raise CustomError(...) from err`.
+* **DO NOT rename anemic models to fake partials**: Models with >=4 fields where >=50% are optional are flagged (SLOP022). Use `TypedDict(total=False)` for sparse dictionaries or construct complete domain models.
+* **DO NOT suppress rules with comments**: `# SAFETY:` comments do not bypass production `assert` or `cast()` rules.
 
 ---
 
@@ -106,36 +96,34 @@ When fixing anti-slop violations, agents must resolve root architectural causes 
 * **`no-unsafe-dictionary-type` (SLOP013) & `no-known-value-widening` (SLOP003)**:
   - *Remedy*: Replace loose `dict[str, Any]` contracts with `TypedDict`, `@dataclass(frozen=True)`, or Pydantic models.
 * **`no-object-parameters` (SLOP005) & `no-unknown-parameters/returns/type-aliases` (SLOP010/SLOP011/SLOP012)**:
-  - *Remedy*: Replace untyped `Any`/`object` with explicit `typing.Protocol` interfaces or bounded type parameters (`[T: SupportsProcessing]`).
+  - *Remedy*: Annotate all public boundaries. Replace untyped `Any`/`object` with explicit `typing.Protocol` interfaces or bounded type parameters (`[T: SupportsProcessing]`).
 * **`require-safety-comment-for-type-assertion` (SLOP015)**:
-  - *Remedy*: Document the invariant proven elsewhere: `# SAFETY: validated non-empty and parsed by request schema decoder`.
+  - *Remedy*: Avoid `cast()`. If casting is strictly required in external adapter code, configure `boundary_modules = ["src/adapters/**"]`.
 
 #### Category 2: Dynamic Reflection & Testing Seams
 
 * **`no-module-mocking` (SLOP004)**:
   - *Remedy*: Refactor code to accept dependencies via constructor injection. In tests, supply an in-memory test double conforming to the `Protocol`.
 * **`no-reflect-apply` (SLOP006) & `no-reflect-get` (SLOP007)**:
-  - *Remedy*: Use direct typed attribute access (`obj.field`), method polymorphism (`obj.execute()`), or structural pattern matching (`match item:`).
+  - *Remedy*: Use direct typed attribute access (`obj.field`), literal `getattr(obj, "field", default)` for optional access, or structural pattern matching (`match item:`).
 * **`no-conditional-empty-object-spread` (SLOP002)**:
   - *Remedy*: Construct dictionaries with explicit updates: `payload = dict(base); if condition: payload.update(extra)`.
-* **`no-shape-in-symbol-names` (SLOP009)**:
-  - *Remedy*: Name models after the domain entity (`User`, `UserProfile`, `UserRecord`) instead of `UserShape`.
 
 #### Category 3: API Signatures, Error Flow & Control Flow
 
 * **`no-runtime-typeof` (SLOP008)**:
-  - *Remedy*: Parse external inputs once at the I/O boundary into validated domain models. Internal classes trust their static type contracts.
+  - *Remedy*: Avoid exact identity checks (`type(x) is Foo` or `x.__class__ is Foo`). Use `isinstance()`, structural pattern matching (`match/case`), or polymorphic protocols.
 * **`no-excessive-parameters` (SLOP016)**:
   - *Remedy*: Group parameters into a dedicated `@dataclass(frozen=True)` options object (`ExportOptions`).
 * **`require-keyword-only-booleans` (SLOP017)**:
   - *Remedy*: Make boolean arguments keyword-only: `def process(user_id: str, *, dry_run: bool = False):`.
 * **`no-silent-exception-swallow` (SLOP018)**:
-  - *Remedy*: Handle specific exceptions, log failures, or chain exceptions: `raise ServiceError(...) from err`.
+  - *Remedy*: Handle specific exceptions, log with `logger.exception()`, use `contextlib.suppress(SpecificException)`, or chain exceptions: `raise ServiceError(...) from err`.
 * **`no-unnamed-tuple-returns` (SLOP019)**:
   - *Remedy*: Return a named `@dataclass(frozen=True)` or `NamedTuple` instead of `tuple[bool, str, int]`.
 * **`no-assert-validation` (SLOP020)**:
-  - *Remedy*: Replace `assert` with explicit `if condition: raise ValueError(...)`.
+  - *Remedy*: Replace production `assert` with explicit `if condition: raise ValueError(...)`.
 * **`no-mutable-default-arguments` (SLOP021)**:
   - *Remedy*: Use `items: list[str] | None = None` and instantiate inside the function, or `field(default_factory=list)`.
 * **`no-excessive-optional-fields` (SLOP022)**:
-  - *Remedy*: Avoid anemic partial models where most fields are `| None`. Parse raw boundary data directly into complete domain models at the I/O boundary.
+  - *Remedy*: Parse raw boundary data into complete domain models where required fields are non-optional. For sparse dictionaries, use `TypedDict(total=False)`.

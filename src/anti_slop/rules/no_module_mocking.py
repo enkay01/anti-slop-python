@@ -5,7 +5,7 @@ from typing import Iterator
 
 from anti_slop.models import Diagnostic
 from anti_slop.rules.base import BaseRule, RuleContext
-from anti_slop.shared.ast_utils import get_dotted_name
+from anti_slop.shared.ast_utils import get_dotted_name, is_test_file
 
 MOCK_EXACT_NAMES = {
     "patch",
@@ -27,8 +27,18 @@ MOCK_EXACT_NAMES = {
     "monkeypatch.setitem",
     "monkeypatch.delattr",
     "monkeypatch.delitem",
-    "monkeypatch.setenv",
-    "monkeypatch.delenv",
+}
+
+DIRECT_MOCK_CONSTRUCTORS = {
+    "MagicMock",
+    "Mock",
+    "AsyncMock",
+    "mock.MagicMock",
+    "mock.Mock",
+    "mock.AsyncMock",
+    "unittest.mock.MagicMock",
+    "unittest.mock.Mock",
+    "unittest.mock.AsyncMock",
 }
 
 
@@ -58,6 +68,8 @@ class NoModuleMockingRule(BaseRule):
     description = "Disallow module mocking and monkeypatching; tests must replace dependencies through real interfaces."
 
     def run(self, context: RuleContext) -> Iterator[Diagnostic]:
+        in_test = is_test_file(context.filename)
+
         for node in ast.walk(context.tree):
             # 1. Function / method calls: patch(...) or monkeypatch.setattr(...)
             if isinstance(node, ast.Call):
@@ -82,3 +94,17 @@ class NoModuleMockingRule(BaseRule):
                                 rule_id=self.rule_id,
                                 message="Replace module mocking with dependency injection through a real interface, service layer, or faithful test implementation.",
                             )
+
+            # 3. Direct module-level mocking assignment in test files: mod.fn = MagicMock()
+            elif in_test and isinstance(node, ast.Assign):
+                if isinstance(node.value, ast.Call):
+                    func_name = get_dotted_name(node.value.func)
+                    if func_name in DIRECT_MOCK_CONSTRUCTORS:
+                        for target in node.targets:
+                            if isinstance(target, ast.Attribute):
+                                yield context.make_diagnostic(
+                                    node=node,
+                                    code=self.code,
+                                    rule_id=self.rule_id,
+                                    message="Replace module attribute mocking with dependency injection through a real interface or fake implementation.",
+                                )

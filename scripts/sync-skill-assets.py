@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Sync src/anti_slop and scripts to skills/anti-slop and skills/install-anti-slop."""
+"""Sync src/anti_slop and scripts to skills/anti-slop, skills/install-anti-slop, and tools/anti-slop."""
 
 import shutil
 from pathlib import Path
@@ -24,12 +24,22 @@ def sync_skill(repo_root: Path, skill_name: str, src_dir: Path) -> None:
     print(f"Synced {src_dir} -> {skill_dir}")
 
 
+def sync_tools(repo_root: Path, src_dir: Path) -> None:
+    tools_dest = repo_root / "tools" / "anti-slop"
+    if tools_dest.exists():
+        shutil.rmtree(tools_dest)
+    tools_dest.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copytree(src_dir, tools_dest)
+    print(f"Synced {src_dir} -> {tools_dest}")
+
+
 def main() -> int:
     repo_root = Path(__file__).resolve().parent.parent
     src_dir = repo_root / "src" / "anti_slop"
 
     sync_skill(repo_root, "anti-slop", src_dir)
     sync_skill(repo_root, "install-anti-slop", src_dir)
+    sync_tools(repo_root, src_dir)
     return 0
 
 

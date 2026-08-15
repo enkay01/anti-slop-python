@@ -5,7 +5,7 @@ from typing import Iterator
 
 from anti_slop.models import Diagnostic
 from anti_slop.rules.base import BaseRule, RuleContext
-from anti_slop.shared.ast_utils import get_annotation_name
+from anti_slop.shared.ast_utils import get_annotation_name, is_public_function
 
 
 def resolves_to_unknown_return(
@@ -38,14 +38,22 @@ def resolves_to_unknown_return(
 class NoUnknownReturnsRule(BaseRule):
     rule_id = "no-unknown-returns"
     code = "SLOP011"
-    description = "Disallow functions whose explicit return contract is Any or Awaitable[Any]."
+    description = "Disallow public functions without return annotations or returning Any / Awaitable[Any]."
 
     def run(self, context: RuleContext) -> Iterator[Diagnostic]:
         for node in ast.walk(context.tree):
             if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
                 continue
 
-            if node.returns is not None and resolves_to_unknown_return(node.returns, context.aliases):
+            if node.returns is None:
+                if is_public_function(node, context.filename):
+                    yield context.make_diagnostic(
+                        node=node,
+                        code=self.code,
+                        rule_id=self.rule_id,
+                        message=f"Public function `{node.name}` has no return type annotation. Specify an explicit return type contract (e.g. `-> None` or `-> DomainType`).",
+                    )
+            elif resolves_to_unknown_return(node.returns, context.aliases):
                 yield context.make_diagnostic(
                     node=node.returns,
                     code=self.code,

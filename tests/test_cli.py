@@ -16,7 +16,7 @@ def test_cli_clean_code(tmp_path: Path, monkeypatch):
 
 def test_cli_violations(tmp_path: Path, monkeypatch, capsys):
     test_file = tmp_path / "violations.py"
-    test_file.write_text("class UserShape:\n    pass\n", encoding="utf-8")
+    test_file.write_text("if x.__class__ is int:\n    pass\n", encoding="utf-8")
     monkeypatch.chdir(tmp_path)
 
     exit_code = main(["check", str(test_file), "--format", "json"])
@@ -25,7 +25,7 @@ def test_cli_violations(tmp_path: Path, monkeypatch, capsys):
     captured = capsys.readouterr()
     data = json.loads(captured.out)
     assert len(data) == 1
-    assert data[0]["code"] == "SLOP009"
+    assert data[0]["code"] == "SLOP008"
 
 
 def test_cli_init(tmp_path: Path, monkeypatch):

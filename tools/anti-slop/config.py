@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import fnmatch
 import os
 import sys
@@ -8,12 +9,12 @@ from pathlib import Path
 from typing import Any
 
 if sys.version_info >= (3, 11):
-    import tomllib
+    import tomllib  # type: ignore
 else:
     try:
         import tomli as tomllib  # type: ignore
     except ImportError:
-        import tomllib  # type: ignore
+        tomllib = None  # type: ignore
 
 DEFAULT_IGNORE_PATTERNS = [
     ".agent/**",
@@ -40,9 +41,16 @@ DEFAULT_IGNORE_PATTERNS = [
     "env/**",
     "node_modules/**",
     "skills/**",
+    "tools/anti_slop/**",
     "tools/anti-slop/**",
     "venv/**",
 ]
+
+DEFAULT_DISABLED_RULES = {
+    "no-shape-in-symbol-names",
+    "anti-slop/no-shape-in-symbol-names",
+    "SLOP009",
+}
 
 
 @dataclass
@@ -79,6 +87,8 @@ class AntiSlopConfig:
         """Check if a rule is enabled."""
         val = self.rules.get(rule_id) or self.rules.get(f"anti-slop/{rule_id}") or self.rules.get(code)
         if val is None:
+            if rule_id in DEFAULT_DISABLED_RULES or code in DEFAULT_DISABLED_RULES:
+                return False
             # Enabled by default unless explicitly turned off
             return True
         if isinstance(val, str):
@@ -96,22 +106,47 @@ class AntiSlopConfig:
         return self.options.get(rule_id, {}) or self.options.get(code, {})
 
 
+def parse_fallback_toml(content: str) -> dict[str, Any]:
+    """Simple regex fallback to extract rules when tomllib is unavailable in Python <3.11."""
+    rules: dict[str, str] = {}
+    in_rules = False
+    for line in content.splitlines():
+        line = line.strip()
+        if line == "[tool.anti-slop.rules]":
+            in_rules = True
+            continue
+        if line.startswith("[") and in_rules:
+            break
+        if in_rules and "=" in line and not line.startswith("#"):
+            k, v = line.split("=", 1)
+            key = k.strip().strip('"').strip("'")
+            val = v.strip().strip('"').strip("'")
+            if key:
+                rules[key] = val
+    return rules
+
+
 def load_config(root_dir: Path | None = None) -> AntiSlopConfig:
     """Load configuration from pyproject.toml in root_dir or parent directories."""
     current = (root_dir or Path.cwd()).resolve()
     while current != current.parent:
         pyproject = current / "pyproject.toml"
         if pyproject.exists():
-            try:
-                with open(pyproject, "rb") as f:
-                    data = tomllib.load(f)
-                tool_config = data.get("tool", {}).get("anti-slop", {})
-                if tool_config:
-                    ignores = tool_config.get("ignore_patterns", list(DEFAULT_IGNORE_PATTERNS))
-                    rules = tool_config.get("rules", {})
-                    options = tool_config.get("options", {})
-                    return AntiSlopConfig(ignore_patterns=ignores, rules=rules, options=options)
-            except Exception:
-                pass
+            with contextlib.suppress(Exception):
+                if tomllib is not None:
+                    with open(pyproject, "rb") as f:
+                        data = tomllib.load(f)
+                    tool_config = data.get("tool", {}).get("anti-slop", {})
+                    if tool_config:
+                        ignores = tool_config.get("ignore_patterns", list(DEFAULT_IGNORE_PATTERNS))
+                        rules = tool_config.get("rules", {})
+                        options = tool_config.get("options", {})
+                        return AntiSlopConfig(ignore_patterns=ignores, rules=rules, options=options)
+                else:
+                    # Fallback for Python < 3.11 without tomli
+                    text = pyproject.read_text(encoding="utf-8")
+                    fallback_rules = parse_fallback_toml(text)
+                    if fallback_rules:
+                        return AntiSlopConfig(rules=fallback_rules)
         current = current.parent
     return AntiSlopConfig()

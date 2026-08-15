@@ -30,6 +30,7 @@ class RuleContext:
         code: str,
         rule_id: str,
         message: str,
+        *,
         severity: Severity = Severity.ERROR,
     ) -> Diagnostic:
         lineno = getattr(node, "lineno", 1)
