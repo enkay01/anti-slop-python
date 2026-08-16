@@ -17,6 +17,7 @@ from anti_slop.rules.no_reflect_get import NoReflectGetRule
 from anti_slop.rules.no_runtime_typeof import NoRuntimeTypeofRule
 from anti_slop.rules.no_shape_in_symbol_names import NoShapeInSymbolNamesRule
 from anti_slop.rules.no_silent_exception_swallow import NoSilentExceptionSwallowRule
+from anti_slop.rules.no_test_setup_bloat import NoTestSetupBloatRule
 from anti_slop.rules.no_unknown_parameters import NoUnknownParametersRule
 from anti_slop.rules.no_unknown_returns import NoUnknownReturnsRule
 from anti_slop.rules.no_unknown_type_aliases import NoUnknownTypeAliasesRule
@@ -49,6 +50,7 @@ ALL_RULES: list[Type[BaseRule]] = [
     NoAssertValidationRule,
     NoMutableDefaultArgumentsRule,
     NoExcessiveOptionalFieldsRule,
+    NoTestSetupBloatRule,
 ]
 
 RULE_REGISTRY: dict[str, Type[BaseRule]] = {}
@@ -74,6 +76,7 @@ __all__ = [
     "NoRuntimeTypeofRule",
     "NoShapeInSymbolNamesRule",
     "NoSilentExceptionSwallowRule",
+    "NoTestSetupBloatRule",
     "NoUnknownParametersRule",
     "NoUnknownReturnsRule",
     "NoUnknownTypeAliasesRule",

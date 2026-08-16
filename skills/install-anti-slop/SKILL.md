@@ -68,6 +68,7 @@ ignore_patterns = [
 "no-assert-validation" = "error"
 "no-mutable-default-arguments" = "error"
 "no-excessive-optional-fields" = "error"
+"no-test-setup-bloat" = "error"
 ```
 
 ---
@@ -83,6 +84,7 @@ When fixing anti-slop violations, agents must resolve root architectural causes 
 * **DO NOT substitute reflection with `__dict__` or `vars()`**: Accessing `obj.__dict__[k]` or `vars(obj)[k]` is flagged (SLOP007). Use typed attribute access or literal `getattr(obj, "field", default)`.
 * **DO NOT use dummy assignment to swallow exceptions**: Writing `ignored = True` or `logger.debug("skip")` without exc_info is flagged (SLOP018). Use `contextlib.suppress(SpecificException)` for intentional ignores, or chain exceptions with `raise CustomError(...) from err`.
 * **DO NOT rename anemic models to fake partials**: Models with >=4 fields where >=50% are optional are flagged (SLOP022). Use `TypedDict(total=False)` for sparse dictionaries or construct complete domain models.
+* **DO NOT inline massive model constructors in tests**: Inline instantiations with >5 kwargs in test functions are flagged (SLOP023). Extract typed helper functions with baseline defaults.
 * **DO NOT suppress rules with comments**: `# SAFETY:` comments do not bypass production `assert` or `cast()` rules.
 
 ---
@@ -104,6 +106,8 @@ When fixing anti-slop violations, agents must resolve root architectural causes 
 
 * **`no-module-mocking` (SLOP004)**:
   - *Remedy*: Refactor code to accept dependencies via constructor injection. In tests, supply an in-memory test double conforming to the `Protocol`.
+* **`no-test-setup-bloat` (SLOP023)**:
+  - *Remedy*: Extract localized typed helper functions (e.g. `make_model(...)`) with baseline defaults, or use `dataclasses.replace` / `Unpack[TypedDict]`. Avoid inline 15-argument constructor bloat in test functions.
 * **`no-reflect-apply` (SLOP006) & `no-reflect-get` (SLOP007)**:
   - *Remedy*: Use direct typed attribute access (`obj.field`), literal `getattr(obj, "field", default)` for optional access, or structural pattern matching (`match item:`).
 * **`no-conditional-empty-object-spread` (SLOP002)**:

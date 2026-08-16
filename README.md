@@ -59,7 +59,7 @@ python -m anti_slop check
 flake8 src/
 ```
 
-## Rules (SLOP001 – SLOP022)
+## Rules (SLOP001 – SLOP023)
 
 - `no-chained-type-assertions` (SLOP001): rejects nested `cast()` calls that fabricate evidence.
 - `no-conditional-empty-object-spread` (SLOP002): rejects conditional dictionary spreads that use `{}` to omit keys.
@@ -83,6 +83,7 @@ flake8 src/
 - `no-assert-validation` (SLOP020): rejects `assert` used as runtime validation in business logic (which vanishes under `python -O`).
 - `no-mutable-default-arguments` (SLOP021): rejects mutable default arguments (lists, dicts, sets) that leak state across invocations.
 - `no-excessive-optional-fields` (SLOP022): rejects anemic partial models with excessive nullable fields (>50% `| None`) and massive null-check chains.
+- `no-test-setup-bloat` (SLOP023): rejects excessive inline model instantiation in test functions (>5 kwargs) and untyped test helpers in favor of typed builders with baseline defaults.
 
 ## Remediation Guidance for Coding Agents
 
@@ -94,6 +95,7 @@ When fixing anti-slop violations, resolve root architectural causes rather than 
 4. **Exception Chaining**: Always use `raise CustomError(...) from err` to preserve stack traces.
 5. **Domain Return Types**: Model multi-value returns as a named dataclass or `NamedTuple`.
 6. **No Type Laundering**: Never create `is_exact_type()` helpers to hide runtime type checks.
+7. **Typed Test Helpers**: Replace direct 15-argument model instantiations in test bodies with localized typed builders (e.g. `make_model(...)`) using baseline defaults.
 
 ## Configuration
 
@@ -129,6 +131,7 @@ ignore_patterns = [
 "no-assert-validation" = "error"
 "no-mutable-default-arguments" = "error"
 "no-excessive-optional-fields" = "error"
+"no-test-setup-bloat" = "error"
 ```
 
 ## License

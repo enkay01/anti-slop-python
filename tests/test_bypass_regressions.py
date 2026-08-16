@@ -185,3 +185,20 @@ def configure(obj: object, field: str, value: object) -> None:
 """
     diagnostics = analyze_source(code, filename="src/plugin.py")
     assert not any(d.code == "SLOP004" for d in diagnostics)
+
+
+def test_slop023_test_setup_bloat_flagged() -> None:
+    code = """
+def test_evaluation():
+    target = CompanyInput(
+        a=1,
+        b=2,
+        c=3,
+        d=4,
+        e=5,
+        f=6,
+    )
+"""
+    diagnostics = analyze_source(code, filename="tests/test_evaluation.py")
+    assert any(d.code == "SLOP023" for d in diagnostics)
+
