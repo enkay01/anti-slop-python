@@ -64,6 +64,14 @@ ignore_patterns = [
 "no-assert-validation" = "error"
 "no-mutable-default-arguments" = "error"
 "no-excessive-optional-fields" = "error"
+"no-test-setup-bloat" = "error"
+"no-tautological-assert" = "error"
+"no-assertionless-test" = "error"
+"no-silent-test-except" = "error"
+"no-opaque-test-names" = "error"
+"no-test-sleep" = "error"
+"no-test-print" = "error"
+"no-private-member-test-access" = "error"
 """
     if pyproject.exists():
         content = pyproject.read_text(encoding="utf-8")

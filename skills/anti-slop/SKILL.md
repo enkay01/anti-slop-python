@@ -69,6 +69,13 @@ ignore_patterns = [
 "no-mutable-default-arguments" = "error"
 "no-excessive-optional-fields" = "error"
 "no-test-setup-bloat" = "error"
+"no-tautological-assert" = "error"
+"no-assertionless-test" = "error"
+"no-silent-test-except" = "error"
+"no-opaque-test-names" = "error"
+"no-test-sleep" = "error"
+"no-test-print" = "error"
+"no-private-member-test-access" = "error"
 ```
 
 ---
@@ -85,6 +92,7 @@ When fixing anti-slop violations, agents must resolve root architectural causes 
 * **DO NOT use dummy assignment to swallow exceptions**: Writing `ignored = True` or `logger.debug("skip")` without exc_info is flagged (SLOP018). Use `contextlib.suppress(SpecificException)` for intentional ignores, or chain exceptions with `raise CustomError(...) from err`.
 * **DO NOT rename anemic models to fake partials**: Models with >=4 fields where >=50% are optional are flagged (SLOP022). Use `TypedDict(total=False)` for sparse dictionaries or construct complete domain models.
 * **DO NOT inline massive model constructors in tests**: Inline instantiations with >5 kwargs in test functions are flagged (SLOP023). Extract typed helper functions with baseline defaults.
+* **DO NOT write tautological assertions or line-hitter tests**: `assert True`, `assert x == x`, or assertionless test functions are flagged (SLOP024/SLOP025). Assert concrete domain outputs.
 * **DO NOT suppress rules with comments**: `# SAFETY:` comments do not bypass production `assert` or `cast()` rules.
 
 ---
@@ -131,3 +139,36 @@ When fixing anti-slop violations, agents must resolve root architectural causes 
   - *Remedy*: Use `items: list[str] | None = None` and instantiate inside the function, or `field(default_factory=list)`.
 * **`no-excessive-optional-fields` (SLOP022)**:
   - *Remedy*: Parse raw boundary data into complete domain models where required fields are non-optional. For sparse dictionaries, use `TypedDict(total=False)`.
+
+#### Category 4: Test Architecture & Verification Quality
+
+* **`no-tautological-assert` (SLOP024)**:
+  - *Remedy*: Remove `assert True`, `assert 1`, `assert x == x`, or literal non-empty collection asserts. Assert dynamic, computed outputs against expected values.
+* **`no-assertionless-test` (SLOP025)**:
+  - *Remedy*: Eliminate line-hitter tests that execute code without asserting. Add explicit domain assertions or `with pytest.raises(...)`.
+* **`no-silent-test-except` (SLOP026)**:
+  - *Remedy*: Replace `try...except` exception catching in tests with `with pytest.raises(ExpectedError):`. Allow unexpected errors to fail naturally to preserve full tracebacks.
+* **`no-opaque-test-names` (SLOP027)**:
+  - *Remedy*: Replace generic names (`test1`, `test_case_1`, `test_works`, `test_it`) with descriptive scenario names (e.g. `test_rejects_expired_session_token`).
+* **`no-test-sleep` (SLOP028)**:
+  - *Remedy*: Eliminate `time.sleep()` and `asyncio.sleep()` in test suites. Use polling loops, condition variables, or fake clock fixtures (`freezegun` / `time_machine`).
+* **`no-test-print` (SLOP029)**:
+  - *Remedy*: Remove debugging `print()` and `sys.stdout.write()` calls from tests. If testing terminal output, use pytest's `capsys` / `caplog` fixtures.
+* **`no-private-member-test-access` (SLOP030)**:
+  - *Remedy*: Stop testing private fields (`sut._internal_state`). Verify behavior strictly through the public API or constructor-injected protocols.
+
+---
+
+### Additional Agent Review Heuristics (Offloaded Checks)
+
+When performing code reviews or architecture audits, coding agents should enforce these high-level heuristics:
+
+1. **Free Ride (Piggybacking)**:
+   - *Heuristic*: A test function should test a single concept or behavior. If a test chains multiple distinct Act-Assert cycles (`Act 1 -> Assert 1 -> Act 2 -> Assert 2 -> Act 3 -> Assert 3`), split them into independent, focused test functions.
+2. **Nitpicker (Monolithic Output Matching)**:
+   - *Heuristic*: Avoid asserting against giant multiline JSON, HTML, or dict blobs when only 1 or 2 fields matter. Assert specific domain fields (`assert response.json()["status"] == "active"`) to prevent test brittleness across unrelated schema changes.
+3. **Happy Path Only (Missing Boundaries)**:
+   - *Heuristic*: Every domain behavior must have negative, edge-case, and boundary test cases (e.g., empty collections, invalid inputs, constraint violations, expired tokens, unauthorized callers).
+4. **Cuckoo / Stranger (Test Module Cohesion)**:
+   - *Heuristic*: Ensure test files only test units matching their module scope (e.g., `test_order_service.py` must test `OrderService` or its direct contracts, not unrelated domains like `UserProfileManager`). Move foreign tests to their own dedicated test files.
+

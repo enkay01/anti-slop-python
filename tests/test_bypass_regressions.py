@@ -202,3 +202,74 @@ def test_evaluation():
     diagnostics = analyze_source(code, filename="tests/test_evaluation.py")
     assert any(d.code == "SLOP023" for d in diagnostics)
 
+
+def test_slop024_tautological_assert_flagged() -> None:
+    code = """
+def test_eval():
+    assert True
+"""
+    diagnostics = analyze_source(code, filename="tests/test_eval.py")
+    assert any(d.code == "SLOP024" for d in diagnostics)
+
+
+def test_slop025_assertionless_test_flagged() -> None:
+    code = """
+def test_eval():
+    do_something()
+"""
+    diagnostics = analyze_source(code, filename="tests/test_eval.py")
+    assert any(d.code == "SLOP025" for d in diagnostics)
+
+
+def test_slop026_silent_test_except_flagged() -> None:
+    code = """
+def test_eval():
+    try:
+        do_something()
+    except Exception:
+        pass
+"""
+    diagnostics = analyze_source(code, filename="tests/test_eval.py")
+    assert any(d.code == "SLOP026" for d in diagnostics)
+
+
+def test_slop027_opaque_test_name_flagged() -> None:
+    code = """
+def test1():
+    assert compute() == 1
+"""
+    diagnostics = analyze_source(code, filename="tests/test_eval.py")
+    assert any(d.code == "SLOP027" for d in diagnostics)
+
+
+def test_slop028_test_sleep_flagged() -> None:
+    code = """
+import time
+
+def test_eval():
+    time.sleep(1)
+    assert compute() == 1
+"""
+    diagnostics = analyze_source(code, filename="tests/test_eval.py")
+    assert any(d.code == "SLOP028" for d in diagnostics)
+
+
+def test_slop029_test_print_flagged() -> None:
+    code = """
+def test_eval():
+    print("hi")
+    assert compute() == 1
+"""
+    diagnostics = analyze_source(code, filename="tests/test_eval.py")
+    assert any(d.code == "SLOP029" for d in diagnostics)
+
+
+def test_slop030_private_member_test_access_flagged() -> None:
+    code = """
+def test_eval():
+    assert sut._private_state == 1
+"""
+    diagnostics = analyze_source(code, filename="tests/test_eval.py")
+    assert any(d.code == "SLOP030" for d in diagnostics)
+
+
